@@ -1,14 +1,21 @@
 {
-    "name":"nodegame",
-    "version":"0.0.0",
-    "depedencies":{
-        "express":"3.2.0",
-        "underscore":"*",
-        "fibers":"1.0.0",
-        "sockjs" : "0.3.5",
-        "coffee-script" : "*",
-        "async" : "*",
-        "redis" : "*",
-        "sha1" : "1.0.1"
-    }
+  "name": "nodegame",
+  "version": "0.0.0",
+  "dependencies": {
+    "express": "3.2.0",
+    "underscore": "~1.4.4",
+    "fibers": "~1.0.0",
+    "sockjs": "0.3.5",
+    "coffee-script": "*",
+    "async": "*",
+    "redis": "*",
+    "sha1": "1.0.1"
+  },
+  "devDependencies": {
+    "grunt": "~0.4.1",
+    "grunt-contrib-coffee": "~0.7.0",
+    "grunt-contrib-uglify": "~0.2.0",
+    "mocha": "~1.9.0",
+    "grunt-mocha-test": "~0.2.2"    
+  }
 }
