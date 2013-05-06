@@ -1,0 +1,280 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+		]
+	},
+	"buffers":
+	[
+		{
+			"contents": "net = require('net')\nevents = require('events')\n_ = require('underscore')\nFiber = require('fibers')\nexpress = require('express')\nsockjs = require('sockjs')\nhttp = require('http')\n\nfiber_exec = (body,cb) ->\n	unless _.isFunction(cb)						\n		fiber = Fiber.current\n		if fiber\n			out_result = null\n			done = false\n			body (result) ->\n				out_result = result\n				done = true\n				#console.log 'job done'\n				fiber.run()\n			#console.log 'pre yield'\n			Fiber.yield() unless done\n			#console.log 'post yield'\n			out_result\n		else\n			null\n	else\n		body(cb)\n\nsleep = (msec) ->\n	fiber = Fiber.current\n	setTimeout (->\n		fiber.run()\n		), msec\n	Fiber.yield()\n\nclass Bridge extends events.EventEmitter\n	constructor : (@trid=0) ->\n		@objects = {}\n		@buffer = \"\"\n\n	init: (client) ->\n		@client = client\n		client.on 'data', (data) =>\n			@buffer += data.toString()			\n			while true\n				str = @getLine()\n				break unless str\n				i = str.indexOf(' ')\n				trid = parseInt(str.substr(0,i))\n				@emit trid, str.substr(i+1)\n	getLine : ->\n		i = @buffer.indexOf(\"\\r\\n\")\n		return null if i<0\n		result = @buffer.substr(0,i)\n		@buffer = @buffer.substr(i+2)\n		result\n	send : (command,cb) ->\n		command = command.join(' ') if (_.isArray(command))\n		my_trid = @trid++\n		buf = \"#{my_trid} #{command}\\r\\n\"\n\n		body = (cb) =>			\n			@once my_trid, cb \n			@client.write buf	\n\n		fiber_exec body, cb\n\n	read : (target,field,cb) -> @send [target,'read',field].join(' '), cb\n	write : (target,field,value,cb) -> @send [target,'write',field,value].join(' '), cb\n	exec : (target,command,cb) -> @send [target,'exec',command].join(' '), cb\n	getSuperClassOfClass : (classId,cb) ->\n		@send [classId,'super'], (superClassId) =>			\n			o = @objects[superClassId]			\n			if o or superClassId is \"#-1\"\n				cb(o)\n			else\n				@readClass superClassId, cb\n	readClass : (classId,cb) ->		\n		@getSuperClassOfClass classId, (superClass) =>\n			@read classId,'name',(className) =>				\n				@send [classId,'listprop'], (props) =>\n					props = props.split(',')\n					@send [classId,'listfunc'], (funcs) =>						\n						funcs = funcs.split(',')\n						cls = new Class(classId,className,superClass,props,funcs)\n						cb(cls)\n	getClass : (id,cb) ->\n		@send [id,'class'].join(' '), (classId) =>\n			cls = @objects[classId]\n			if cls\n				cb(cls) \n			else	\n				@readClass classId,cb\n		\n	access : (id,cb) ->\n		body = (cb) =>\n			if (id == \"#-1\")\n				null\n			else\n				o = @objects[id]\n				if o\n					cb(o)\n				else\n					@getClass id, (result) =>\n						cb @create(result,id)\n		fiber_exec body, cb\n\n	create : (classObject,id) ->\n		o = new Object(id,classObject)		\n		o\n\nbridge = new Bridge()\n\nclass Object\n	constructor : (@id,@class) ->\n		@class.installHandlers(@) if @class\n		bridge.objects[id] = @\n	read : (field,cb) ->\n		body = (cb) =>\n			bridge.read @id, field, (result) =>\n				if result[0] == '#'\n					bridge.access result, cb\n				else\n					cb(result)\n		fiber_exec body, cb\n\n	write : (field,value,cb) ->\n		bridge.write @id, field, value, cb\n\n	exec : (command,cb) ->\n		bridge.exec @id, command, cb\n\nclass Class extends Object\n	constructor : (@id,@name,@superClass,@props,@funcs) ->		\n		super @id, null	\n\n	installHandlers : (target) ->\n		@superClass.installHandlers(target) if @superClass\n\n		for prop in @props			\n			do (prop) ->\n				target.__defineGetter__ prop, -> @read prop					\n				target.__defineSetter__ prop, (value) -> @write prop, value\n\n		for func in @funcs\n			do (func) ->				\n				target[func] = (command) ->\n					@exec [func,command].join(' ')\n\nclient = net.connect {port:1336}, ->\n	console.log 'connected'\n\n	bridge.init(client)\n	\n	Fiber(->			\n		pc = bridge.access 'LocalPC'		\n		[0..2].map (x) ->\n			pc.TestComplimentSound(x)\n			sleep(1000)\n	).run()	\n  \nclient.on 'end', ->\n  console.log 'disconnected'\n\napp = express()\n\necho = sockjs.createServer()\necho.on 'connection', (conn) ->\n	conn.on 'data', (msg) ->\n		\n		\napp = express()\napp.use '/', express.static(__dirname+'/public')\napp.use '/lib', express.static(__dirname+'/lib')\n\nserver = http.createServer app\necho.installHandlers server, {prefix:'/echo'}\nserver.listen 3337\n\n",
+			"file": "main.coffee",
+			"file_size": 4244,
+			"file_write_time": 130116975801643072,
+			"settings":
+			{
+				"buffer_size": 4050,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"contents": "{\n    \"name\":\"nodegame\",\n    \"version\":\"0.0.0\",\n    \"depedencies\":{\n        \"express\":\"3.2.0\",\n        \"underscore\":\"*\",\n        \"fibers\":\"1.0.0\",\n        \"sockjs\" : \"0.3.5\",\n        \"coffee-script\"\n    }\n}",
+			"file": "package.json",
+			"file_size": 190,
+			"file_write_time": 130116971576048072,
+			"settings":
+			{
+				"buffer_size": 206,
+				"line_ending": "Windows"
+			}
+		},
+		{
+			"file": "public/index.html",
+			"settings":
+			{
+				"buffer_size": 1157,
+				"line_ending": "Windows"
+			}
+		}
+	],
+	"build_system": "",
+	"command_palette":
+	{
+		"height": 392.0,
+		"selected_items":
+		[
+			[
+				"install",
+				"Package Control: Install Package"
+			],
+			[
+				"instl",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 400.0
+	},
+	"console":
+	{
+		"height": 125.0
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/D/livenode/lib/object.js"
+	],
+	"find":
+	{
+		"height": 34.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"console.log",
+			"funcs",
+			"getClass",
+			"WorldInfo",
+			"ScriptCollection"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 1,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "main.coffee",
+					"settings":
+					{
+						"buffer_size": 4050,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								156,
+								156
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/CoffeeScript/CoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "package.json",
+					"settings":
+					{
+						"buffer_size": 206,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								191,
+								191
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/JavaScript/JSON.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "public/index.html",
+					"settings":
+					{
+						"buffer_size": 1157,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								989,
+								989
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/HTML/HTML.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 45.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 0.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.exec":
+	{
+		"height": 185.0
+	},
+	"replace":
+	{
+		"height": 0.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+			[
+				"",
+				"main.coffee"
+			],
+			[
+				"package.json",
+				"package.json"
+			],
+			[
+				"m",
+				"main.coffee"
+			],
+			[
+				"main",
+				"main.coffee"
+			]
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 500.0,
+		"selected_items":
+		[
+			[
+				"",
+				"/D/livenode/livenode.sublime-project"
+			]
+		],
+		"width": 380.0
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 150.0,
+	"status_bar_visible": true
+}

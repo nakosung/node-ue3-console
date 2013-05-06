@@ -1,0 +1,55 @@
+<html ng-app="node">
+<head>
+	<title>test</title>	
+	<link rel="stylesheet" type="text/css" href="css/main.css">
+	<link rel="stylesheet" type="text/css" href="lib/codemirror.css">
+	<link rel="stylesheet" type="text/css" href="css/monokai.css">	
+	<link rel="stylesheet" type="text/css" href="css/cobalt.css">	
+	<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+	<style type="text/css">
+		.CodeMirror { font-family: Consolas, 'Liberation Mono', Courier, monospace; font-size:12px; }
+      	.CodeMirror {border-top: 1px solid black; border-bottom: 1px solid black;}
+      	.CodeMirror-activeline-background {background: #e8f2ff !important;}
+    </style>	
+</head>
+<body ng-controller="CodeCtrl">
+	<div class="navbar">
+		<div class="navbar-inner">
+			<a class="brand" href="#">UnrealEngine3 Node.js interface {{status()}}</a>
+			<div class="pull-right">
+				<a href="http://github.com/nakosung">nakosung</a>
+			</div>
+		</div>		
+	</div>	
+	<div class="container" collapse="!server.list">		
+		<div class="span1"></div>
+		<div class="row tabbable tabs-left">						
+			<ul class="nav nav-tabs span3">				
+				<li ng-class="{navHeader:true,active:server.active == code.id}" ng-repeat="code in server.list" ng-click="server.load(code.id)">
+					<a href="#"> {{code.title}}</a>
+				</li>
+			</ul>			
+			<div class="tab-content">
+				<div>
+					<input type="text" ng-model="server.title">
+				</div>
+				<div class="btn-group">
+					<button class="btn btn-primary" ng-click="server.run()">Run! (F5)</button>
+					<button class="btn" ng-click="server.save()">Save</button>				
+					<button class="btn btn-danger" ng-click="server.discard(server.active)">Discard</button>				
+				</div>
+				<textarea id="code" rows="10" cols="80" ui-codemirror="{theme:'monokai',lineNumbers:true}" ng-model="server.code"></textarea>			
+				<textarea id="logs" rows="10" cols="80" ui-codemirror="{theme:'cobalt'}" ng-model="server.logs"></textarea>
+			</div>			
+		</div>
+	</div>
+	<script type="text/javascript" src="lib/jquery-1.9.1.min.js"></script>
+	<script type="text/javascript" src="lib/sockjs-0.3.min.js"></script>
+	<script type="text/javascript" src="lib/codemirror.js"></script>
+	<script type="text/javascript" src="lib/coffeescript.js"></script>	
+	<script type="text/javascript" src="lib/angular.min.js"></script>
+	<script type="text/javascript" src="lib/angular-ui.min.js"></script>
+	<script type="text/javascript" src="lib/ui-bootstrap-0.3.0.min.js"></script>
+	<script type="text/javascript" src="lib/client.js"></script>
+</body>
+</html>

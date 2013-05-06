@@ -1,0 +1,14 @@
+{
+    "name":"nodegame",
+    "version":"0.0.0",
+    "depedencies":{
+        "express":"3.2.0",
+        "underscore":"*",
+        "fibers":"1.0.0",
+        "sockjs" : "0.3.5",
+        "coffee-script" : "*",
+        "async" : "*",
+        "redis" : "*",
+        "sha1" : "1.0.1"
+    }
+}
