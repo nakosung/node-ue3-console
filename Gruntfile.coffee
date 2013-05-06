@@ -2,7 +2,7 @@ module.exports = (grunt) ->
 	grunt.initConfig
 		pkg : grunt.file.readJSON 'package.json'
 		coffee :
-			compile :
+			server :
 				options:
 					sourceMap:true
 				files:
@@ -10,9 +10,11 @@ module.exports = (grunt) ->
 					'lib/server/ue3.js' : 'src/server/ue3.coffee'
 					'lib/server/ue3prim.js' : 'src/server/ue3prim.coffee'
 					'lib/server/depot.js' : 'src/server/depot.coffee'
+			client :
+				files:
 					'lib/client/client.js' : ['src/client/*.coffee']				
 		uglify :
-			target : 
+			client : 
 				files:
 					'lib/client/client.min.js' : 'lib/client/client.js'
 		mochaTest :

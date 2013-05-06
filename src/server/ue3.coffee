@@ -113,7 +113,7 @@ class Bridge extends events.EventEmitter
 		fiber_exec body, cb
 
 	create : (classObject,id) -> 
-		o = new classObject.UEObjectClass(@,id)				
+		o = new classObject.UEObjectClass(@,id)
 		@objects[id] = o
 		o
 
@@ -123,7 +123,7 @@ class Object
 	# low-level accessor
 	read : (field,cb) ->
 		body = (cb) =>
-			@bridge.read @id, field, (result) ->
+			@bridge.read @id, field, (result) =>
 				ue3prim.from(result,@bridge,cb)
 				
 		fiber_exec body, cb
@@ -143,7 +143,8 @@ class Class extends Object
 		# this is the real reflected class!
 		BaseClass = @superClass?.UEObjectClass or Object
 		class UEObject extends BaseClass
-			constructor : (@id, @class) ->
+			constructor : (@bridge, @id, @class) ->
+			toString : -> "#{self.name}_#{@id}"
 
 		@UEObjectClass = UEObject				
 
@@ -166,20 +167,28 @@ class Hosts extends events.EventEmitter
 	constructor: (@BridgeClass = Bridge)->		
 		@bridges = []
 
-	connect: (opts) ->
+	connect: (opts) ->		
+		reconnect = =>
+			console.log 'trying to reconect'
+			setTimeout (=> @connect opts), 1000
+
 		client = net.connect opts, =>
 			bridge = new @BridgeClass()
-			console.log 'connected'
+			bridge.opts = opts			
 			bridge.init client, =>
+				console.log 'connected'
 				@bridges.push bridge			
 
 				bridge.on 'close', =>
-					setTimeout (=> @connect @opts), 1000
+					@bridges = _.without @bridges, bridge
+					@emit 'disconnect', bridge
+					reconnect()
 
 				@emit 'connect', bridge
 
 		client.on 'error', (err) =>
-			setTimeout (=> @connect @opts), 1000
+			reconnect()
+		
 
 exports.Hosts = Hosts					
 exports.Bridge = Bridge

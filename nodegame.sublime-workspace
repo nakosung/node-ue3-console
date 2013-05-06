@@ -3,47 +3,73 @@
 	{
 		"selected_items":
 		[
+			[
+				"cons",
+				"constructor"
+			],
+			[
+				"sha",
+				"sharedDevice"
+			],
+			[
+				"close",
+				"closeConnection"
+			],
+			[
+				"redis",
+				"redisClient"
+			],
+			[
+				"name",
+				"named_classes"
+			],
+			[
+				"UEOject",
+				"UEObjectClass"
+			],
+			[
+				"UEObject",
+				"UEObjectClass"
+			],
+			[
+				"current",
+				"currentCode"
+			],
+			[
+				"str",
+				"stringify"
+			]
 		]
 	},
 	"buffers":
 	[
 		{
-			"contents": "net = require('net')\nevents = require('events')\n_ = require('underscore')\nFiber = require('fibers')\nexpress = require('express')\nsockjs = require('sockjs')\nhttp = require('http')\n\nfiber_exec = (body,cb) ->\n	unless _.isFunction(cb)						\n		fiber = Fiber.current\n		if fiber\n			out_result = null\n			done = false\n			body (result) ->\n				out_result = result\n				done = true\n				#console.log 'job done'\n				fiber.run()\n			#console.log 'pre yield'\n			Fiber.yield() unless done\n			#console.log 'post yield'\n			out_result\n		else\n			null\n	else\n		body(cb)\n\nsleep = (msec) ->\n	fiber = Fiber.current\n	setTimeout (->\n		fiber.run()\n		), msec\n	Fiber.yield()\n\nclass Bridge extends events.EventEmitter\n	constructor : (@trid=0) ->\n		@objects = {}\n		@buffer = \"\"\n\n	init: (client) ->\n		@client = client\n		client.on 'data', (data) =>\n			@buffer += data.toString()			\n			while true\n				str = @getLine()\n				break unless str\n				i = str.indexOf(' ')\n				trid = parseInt(str.substr(0,i))\n				@emit trid, str.substr(i+1)\n	getLine : ->\n		i = @buffer.indexOf(\"\\r\\n\")\n		return null if i<0\n		result = @buffer.substr(0,i)\n		@buffer = @buffer.substr(i+2)\n		result\n	send : (command,cb) ->\n		command = command.join(' ') if (_.isArray(command))\n		my_trid = @trid++\n		buf = \"#{my_trid} #{command}\\r\\n\"\n\n		body = (cb) =>			\n			@once my_trid, cb \n			@client.write buf	\n\n		fiber_exec body, cb\n\n	read : (target,field,cb) -> @send [target,'read',field].join(' '), cb\n	write : (target,field,value,cb) -> @send [target,'write',field,value].join(' '), cb\n	exec : (target,command,cb) -> @send [target,'exec',command].join(' '), cb\n	getSuperClassOfClass : (classId,cb) ->\n		@send [classId,'super'], (superClassId) =>			\n			o = @objects[superClassId]			\n			if o or superClassId is \"#-1\"\n				cb(o)\n			else\n				@readClass superClassId, cb\n	readClass : (classId,cb) ->		\n		@getSuperClassOfClass classId, (superClass) =>\n			@read classId,'name',(className) =>				\n				@send [classId,'listprop'], (props) =>\n					props = props.split(',')\n					@send [classId,'listfunc'], (funcs) =>						\n						funcs = funcs.split(',')\n						cls = new Class(classId,className,superClass,props,funcs)\n						cb(cls)\n	getClass : (id,cb) ->\n		@send [id,'class'].join(' '), (classId) =>\n			cls = @objects[classId]\n			if cls\n				cb(cls) \n			else	\n				@readClass classId,cb\n		\n	access : (id,cb) ->\n		body = (cb) =>\n			if (id == \"#-1\")\n				null\n			else\n				o = @objects[id]\n				if o\n					cb(o)\n				else\n					@getClass id, (result) =>\n						cb @create(result,id)\n		fiber_exec body, cb\n\n	create : (classObject,id) ->\n		o = new Object(id,classObject)		\n		o\n\nbridge = new Bridge()\n\nclass Object\n	constructor : (@id,@class) ->\n		@class.installHandlers(@) if @class\n		bridge.objects[id] = @\n	read : (field,cb) ->\n		body = (cb) =>\n			bridge.read @id, field, (result) =>\n				if result[0] == '#'\n					bridge.access result, cb\n				else\n					cb(result)\n		fiber_exec body, cb\n\n	write : (field,value,cb) ->\n		bridge.write @id, field, value, cb\n\n	exec : (command,cb) ->\n		bridge.exec @id, command, cb\n\nclass Class extends Object\n	constructor : (@id,@name,@superClass,@props,@funcs) ->		\n		super @id, null	\n\n	installHandlers : (target) ->\n		@superClass.installHandlers(target) if @superClass\n\n		for prop in @props			\n			do (prop) ->\n				target.__defineGetter__ prop, -> @read prop					\n				target.__defineSetter__ prop, (value) -> @write prop, value\n\n		for func in @funcs\n			do (func) ->				\n				target[func] = (command) ->\n					@exec [func,command].join(' ')\n\nclient = net.connect {port:1336}, ->\n	console.log 'connected'\n\n	bridge.init(client)\n	\n	Fiber(->			\n		pc = bridge.access 'LocalPC'		\n		[0..2].map (x) ->\n			pc.TestComplimentSound(x)\n			sleep(1000)\n	).run()	\n  \nclient.on 'end', ->\n  console.log 'disconnected'\n\napp = express()\n\necho = sockjs.createServer()\necho.on 'connection', (conn) ->\n	conn.on 'data', (msg) ->\n		\n		\napp = express()\napp.use '/', express.static(__dirname+'/public')\napp.use '/lib', express.static(__dirname+'/lib')\n\nserver = http.createServer app\necho.installHandlers server, {prefix:'/echo'}\nserver.listen 3337\n\n",
-			"file": "main.coffee",
-			"file_size": 4244,
-			"file_write_time": 130116975801643072,
+			"file": "src/server/main.coffee",
 			"settings":
 			{
-				"buffer_size": 4050,
+				"buffer_size": 4395,
 				"line_ending": "Windows"
 			}
 		},
 		{
-			"contents": "{\n    \"name\":\"nodegame\",\n    \"version\":\"0.0.0\",\n    \"depedencies\":{\n        \"express\":\"3.2.0\",\n        \"underscore\":\"*\",\n        \"fibers\":\"1.0.0\",\n        \"sockjs\" : \"0.3.5\",\n        \"coffee-script\"\n    }\n}",
-			"file": "package.json",
-			"file_size": 190,
-			"file_write_time": 130116971576048072,
+			"file": "src/server/ue3.coffee",
 			"settings":
 			{
-				"buffer_size": 206,
-				"line_ending": "Windows"
-			}
-		},
-		{
-			"file": "public/index.html",
-			"settings":
-			{
-				"buffer_size": 1157,
+				"buffer_size": 4474,
 				"line_ending": "Windows"
 			}
 		}
 	],
-	"build_system": "",
+	"build_system": "Packages/User/grunt.sublime-build",
 	"command_palette":
 	{
 		"height": 392.0,
 		"selected_items":
 		[
+			[
+				"grunt",
+				"Grunt"
+			],
 			[
 				"install",
 				"Package Control: Install Package"
@@ -70,6 +96,39 @@
 	},
 	"file_history":
 	[
+		"/D/nodegame/.nodemonignore",
+		"/D/nodegame/test/test_depot.coffee",
+		"/D/nodegame/src/server/ue3.coffee",
+		"/D/nodegame/src/server/ue3prim.coffee",
+		"/D/nodegame/src/server/main.coffee",
+		"/D/nodegame/public/index.html",
+		"/D/nodegame/src/client/client.coffee",
+		"/D/nodegame/Gruntfile.coffee",
+		"/D/nodegame/test/test_ue3prim.coffee",
+		"/D/nodegame/lib/server/ue3prim.js",
+		"/D/nodegame/package.json",
+		"/D/nodegame/lib/client/underscore.min.js",
+		"/D/nodegame/lib/client/d3.v3.min.js",
+		"/D/nodegame/src/server/depot.coffee",
+		"/C/Users/deif/AppData/Roaming/Sublime Text 2/Packages/Default/Default (Windows).sublime-keymap",
+		"/C/Users/deif/AppData/Roaming/Sublime Text 2/Packages/User/grunt.sublime-build",
+		"/D/nodegame/run.js",
+		"/D/nodegame/main.coffee",
+		"/D/nodegame/src/client.coffee",
+		"/D/nodegame/fiber-workaround.js",
+		"/D/nodegame/Cakefile",
+		"/D/nodegame/ue3.coffee",
+		"/C/Users/deif/AppData/Roaming/npm/node_modules/fibers/test/c.js",
+		"/D/nodegame/ue3prim.coffee",
+		"/D/nodegame/lib/client.js",
+		"/D/nodegame/lib/ui-bootstrap-0.3.0.min.js",
+		"/C/Users/deif/AppData/Roaming/Sublime Text 2/Packages/CoffeeScript/CoffeeScript.sublime-build",
+		"/D/nodegame/public/client.js",
+		"/D/nodegame/lib/codemirror.css",
+		"/D/nodegame/public/css/main.css",
+		"/D/nodegame/lib/coffeescript.js",
+		"/D/nodegame/public/css/cobalt.css",
+		"/D/nodegame/public/css/monokai",
 		"/D/livenode/lib/object.js"
 	],
 	"find":
@@ -81,6 +140,7 @@
 		"height": 0.0,
 		"where_history":
 		[
+			""
 		]
 	},
 	"find_state":
@@ -89,6 +149,78 @@
 		"find_history":
 		[
 			"console.log",
+			"@emit",
+			"[-+]",
+			"@plot",
+			"@plots",
+			"log",
+			"host",
+			"gethostlis",
+			"gethost",
+			"hosts",
+			"console.log",
+			"@bridge",
+			"bridge",
+			"OBject",
+			"objects",
+			"Fiber",
+			"echo",
+			"app",
+			"BridgeEnv",
+			"closeConnection",
+			".init",
+			".run",
+			"ue3",
+			"online",
+			"send",
+			"coffeesc",
+			".log",
+			"SharedDevice",
+			"bridge",
+			"main_cb",
+			"bridge",
+			"shift+t",
+			"ctrl+r\"",
+			"ctrl+t",
+			"test",
+			"clientfiles",
+			"clientside",
+			"redis",
+			"dirname",
+			"Fiber",
+			"fibers",
+			"@bridge",
+			"console.log",
+			"@bridge",
+			"bridge",
+			"setTimeout",
+			"initSock",
+			"installHandlers",
+			"async.",
+			"from",
+			"fiber_exec",
+			"coffeescript",
+			"getline",
+			"to_unrealengine3",
+			"@send",
+			"sleep",
+			"Fiber",
+			"Object",
+			"Class",
+			"to_unrealengine3",
+			"fiber_exec",
+			"bridge",
+			"net",
+			"http",
+			"redis",
+			"fiber_exec",
+			"linec",
+			"currentCode",
+			"ul",
+			"send",
+			"conn",
+			"split",
+			"console.log",
 			"funcs",
 			"getClass",
 			"WorldInfo",
@@ -96,10 +228,11 @@
 		],
 		"highlight": true,
 		"in_selection": false,
-		"preserve_case": false,
+		"preserve_case": true,
 		"regex": false,
 		"replace_history":
 		[
+			"[\\-\\+]"
 		],
 		"reverse": false,
 		"show_context": true,
@@ -110,23 +243,23 @@
 	"groups":
 	[
 		{
-			"selected": 1,
+			"selected": 0,
 			"sheets":
 			[
 				{
 					"buffer": 0,
-					"file": "main.coffee",
+					"file": "src/server/main.coffee",
 					"settings":
 					{
-						"buffer_size": 4050,
+						"buffer_size": 4395,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								156,
-								156
+								2892,
+								2892
 							]
 						],
 						"settings":
@@ -135,59 +268,34 @@
 							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
+						"translation.y": 1202.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
 				},
 				{
 					"buffer": 1,
-					"file": "package.json",
+					"file": "src/server/ue3.coffee",
 					"settings":
 					{
-						"buffer_size": 206,
+						"buffer_size": 4474,
 						"regions":
 						{
 						},
 						"selection":
 						[
 							[
-								191,
-								191
+								4035,
+								4035
 							]
 						],
 						"settings":
 						{
-							"syntax": "Packages/JavaScript/JSON.tmLanguage"
+							"syntax": "Packages/CoffeeScript/CoffeeScript.tmLanguage",
+							"translate_tabs_to_spaces": false
 						},
 						"translation.x": 0.0,
-						"translation.y": 0.0,
-						"zoom_level": 1.0
-					},
-					"type": "text"
-				},
-				{
-					"buffer": 2,
-					"file": "public/index.html",
-					"settings":
-					{
-						"buffer_size": 1157,
-						"regions":
-						{
-						},
-						"selection":
-						[
-							[
-								989,
-								989
-							]
-						],
-						"settings":
-						{
-							"syntax": "Packages/HTML/HTML.tmLanguage"
-						},
-						"translation.x": 0.0,
-						"translation.y": 45.0,
+						"translation.y": 1772.0,
 						"zoom_level": 1.0
 					},
 					"type": "text"
@@ -201,7 +309,7 @@
 	},
 	"input":
 	{
-		"height": 0.0
+		"height": 31.0
 	},
 	"layout":
 	{
@@ -232,7 +340,7 @@
 	},
 	"replace":
 	{
-		"height": 0.0
+		"height": 62.0
 	},
 	"save_all_on_build": true,
 	"select_file":
@@ -241,8 +349,112 @@
 		"selected_items":
 		[
 			[
+				"ue3.",
+				"src/server/ue3.coffee"
+			],
+			[
+				"main.co",
+				"src/server/main.coffee"
+			],
+			[
+				"cl.c",
+				"src/client/client.coffee"
+			],
+			[
+				"grun",
+				"Gruntfile.coffee"
+			],
+			[
+				"ue3p.c",
+				"src/server/ue3prim.coffee"
+			],
+			[
+				"ue3prim",
+				"lib/server/ue3prim.js"
+			],
+			[
+				"testdepot.",
+				"test/test_depot.coffee"
+			],
+			[
+				"index.ht",
+				"public/index.html"
+			],
+			[
+				"ue3.c",
+				"src/server/ue3.coffee"
+			],
+			[
+				"client.co",
+				"src/client/client.coffee"
+			],
+			[
+				"ue3pr.c",
+				"src/server/ue3prim.coffee"
+			],
+			[
+				"ue3pr",
+				"lib/server/ue3prim.js"
+			],
+			[
+				"index.html",
+				"public/index.html"
+			],
+			[
+				"gruntfile",
+				"Gruntfile.coffee"
+			],
+			[
+				"client.cof",
+				"src/client/client.coffee"
+			],
+			[
+				"depot.co",
+				"src/server/depot.coffee"
+			],
+			[
+				"run.js",
+				"run.js"
+			],
+			[
+				"ue3",
+				"ue3.coffee"
+			],
+			[
+				"main",
+				"main.coffee"
+			],
+			[
+				"c.c",
+				"src/client.coffee"
+			],
+			[
+				"cli",
+				"lib/client.js"
+			],
+			[
+				"cak",
+				"Cakefile"
+			],
+			[
+				"c.js",
+				"public/client.js"
+			],
+			[
+				"client.js",
+				"public/client.js"
+			],
+			[
+				"codemi",
+				"lib/codemirror.css"
+			],
+			[
 				"",
 				"main.coffee"
+			],
+			[
+				"pack",
+				"package.json"
 			],
 			[
 				"package.json",
@@ -250,10 +462,6 @@
 			],
 			[
 				"m",
-				"main.coffee"
-			],
-			[
-				"main",
 				"main.coffee"
 			]
 		],
@@ -275,6 +483,6 @@
 	"show_open_files": false,
 	"show_tabs": true,
 	"side_bar_visible": true,
-	"side_bar_width": 150.0,
+	"side_bar_width": 203.0,
 	"status_bar_visible": true
 }

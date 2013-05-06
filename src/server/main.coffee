@@ -24,8 +24,7 @@ class RichBridge extends Bridge
 			wko = {}
 
 			sequence = wko_names.split(' ').map (k) =>
-				(cb) =>
-					console.log 'querying wko!'
+				(cb) =>					
 					@access k, (o) ->
 						wko[k] = o
 						cb()	
@@ -34,16 +33,24 @@ class RichBridge extends Bridge
 				sleep = (msec) ->
 					fiber = Fiber.current
 					setTimeout (-> fiber.run()), msec			
-					Fiber.yield()
+					Fiber.yield()				
 
 				@sandbox = 
 					WorldInfo:wko.WorldInfo
 					pc:wko.LocalPC
+					_:_
 					access:(x) => @access(x)																				
 					log:(args...) => @log args.toString()
 					sleep:(ms) => sleep(ms)				
+					chart:(x,y) => 
+						unless y
+							y = x
+							x = wko.WorldInfo.TimeSeconds
+						@log JSON.stringify plot:{x:x,y:y}
 
 				done()
+
+	name : -> JSON.stringify(@opts)
 
 	log : (text) ->
 		@emit 'data', text
@@ -78,9 +85,18 @@ class ClientConnection
 		
 		clientFiles.once 'change', closeConnection
 		depot.on 'invalidate', updateCodeList
+
+		invalidateHosts = =>			
+			@setBridge null unless @bridge
+			@send {hosts:@getHostList()}
+
+		hosts.on 'connect', invalidateHosts
+		hosts.on 'disconnect', invalidateHosts
 		
 		@conn.on 'close', =>
 			@setBridge null
+			hosts.removeListener 'connect', invalidateHosts
+			hosts.removeListener 'disconnect', invalidateHosts
 			clientFiles.removeListener 'change', closeConnection
 			depot.removeListener 'invalidate', updateCodeList
 			connections = _.without connections, @
@@ -93,11 +109,13 @@ class ClientConnection
 				else
 					@send result				
 
-		@setBridge hosts.bridges[0]		
+		@setBridge null
 		hosts.on 'connect', =>			
 			@setBridge null unless @bridge
 
 	setBridge : (new_bridge) ->
+		new_bridge ?= hosts.bridges[0]
+		
 		log = (text) => @send log:text			
 
 		@bridge.removeListener 'data', log if @bridge
@@ -106,6 +124,9 @@ class ClientConnection
 			@bridge.on 'data', log 
 			@bridge.on 'close', =>
 				@setBridge null
+
+		@send host:@bridge?.name() or null
+
 
 	send : (json) -> @conn.write JSON.stringify(json)
 
@@ -136,7 +157,22 @@ class ClientConnection
 						if err
 							cb(err,result)
 						else							
-							cb(null,{list:result})					
+							cb(null,{list:result})			
+
+				when 'hosts'					
+					cb(null,{hosts:@getHostList()})		
+
+				when 'connect'
+					hosts = @getHostList()
+					index = hosts.indexOf(v)
+					if index < 0
+						cb('invalid host')
+					else
+						@setBridge(hosts.bridges[index])
+						cb(null,"host seleceted")
+
+	getHostList : ->
+		hosts.bridges.map (x)->x.name()
 
 express = require('express')
 sockjs = require('sockjs')
