@@ -1,4 +1,5 @@
 _ = require('underscore')
+async = require 'async'
 
 # primitives
 class UEPrim
@@ -25,12 +26,22 @@ from_unrealengine3 = (text,bridge,cb) ->
 			rot = /\(Pitch=(\d+),Yaw=(\d+),Roll=(\d+)\)/.exec(text)			
 			if rot					
 				cb new Rotator(parseInt(rot[1]),parseInt(rot[2]),parseInt(rot[3]))
-			else
-				num = parseFloat(text) 
-				if _.isNaN(num)			
-					cb(text)
-				else 			
-					cb(num)
+			else				
+				array = /\((.*)\)/.exec(text)
+				if array
+					elems = array[1].split(',')
+					console.log elems
+					seq = elems.map (e) -> 
+						(cb) -> from_unrealengine3 e, bridge, (result) ->
+							cb(null,result)
+					async.parallel seq, (err,result) ->
+						cb(result)
+				else
+					num = parseFloat(text) 
+					if _.isNaN(num)			
+						cb(text)
+					else 			
+						cb(num)
 
 to_unrealengine3 = (value) ->
 	if value instanceof UEPrim
