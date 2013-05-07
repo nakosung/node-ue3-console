@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html ng-app="node">
 <head>
 	<title>test</title>	
@@ -7,10 +8,11 @@
 	<link rel="stylesheet" type="text/css" href="css/cobalt.css">	
 	<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
 	<style type="text/css">
-		.CodeMirror { font-family: Consolas, 'Liberation Mono', Courier, monospace; font-size:12px; }
+		#watch, .CodeMirror { font-family: Consolas, 'Liberation Mono', Courier, monospace; font-size:12px; }
       	.CodeMirror {border-top: 1px solid black; border-bottom: 1px solid black;}
       	.CodeMirror-activeline-background {background: #e8f2ff !important;}
       	path { fill:none; stroke:steelblue; stroke-width: 2;}
+      	
     </style>	
 </head>
 <body ng-controller="CodeCtrl">
@@ -29,10 +31,10 @@
 	<div class="container" collapse="!server.list">		
 		<div class="span1"></div>
 		<div class="row tabbable tabs-left">						
-			<ul class="nav nav-tabs span3">				
+			<ul class="nav nav-tabs span4">				
 				<li ng-class="{'nav-header':true,active:server.active == code.id}" ng-repeat="code in server.list" ng-click="server.load(code.id)">
 					<a href="#"> {{code.title}}</a>
-				</li>
+				</li>					
 				<xychart val="server.plot"></xychart>
 			</ul>			
 			<div class="tab-content">
@@ -40,15 +42,59 @@
 					<input type="text" class="input-large" ng-model="server.title">
 				</div>
 				<div class="btn-group">
-					<button ng-class="{btn:true,'btn-primary':true,'btn-disabled':!server.host}" ng-click="server.run()">Run! (ctrl+B)</button>
+					<button 
+						ng-class="{btn:true,'btn-primary':true,'disabled':!server.host}" 
+						ng-click="server.run({stop:server.running})">
+						<i ng-class="{'icon-play':!server.running,'icon-repeat':server.running,'icon-white':true}"></i> {{run_action()}}! (ctrl+B)</button>
 					<button class="btn" ng-click="server.save()">Save (ctrl+S)</button>				
 					<button class="btn btn-danger" ng-click="server.discard(server.active)">Discard</button>				
 				</div>				
 				<textarea id="code" rows="10" cols="80" ui-codemirror="{theme:'monokai',lineNumbers:true,indentWithTabs:true,indentUnit:4}" ng-model="server.code"></textarea>			
 				<textarea id="logs" rows="10" cols="80" ui-codemirror="{theme:'cobalt'}" ng-model="server.logs"></textarea>
+			</div>
+		</div>				
+		<div class="row">
+			<div class="span1">
 			</div>			
-		</div>
-	</div>		
+			<div class="span11">
+				<table class="table table-striped span11" id="watch">
+					<thead>
+						<tr>
+							<th width="40%">Watch target</th>
+							<th width="60%">Value</th>
+						</tr>
+					</thead>			
+					<tbody>
+						<tr ng-repeat="(key,value) in server.watches">
+							<td>
+								{{key}}
+								<button class="btn btn-small" ng-click="server.unwatch(key)" showonhoverparent><i class="icon-trash"></i></button>
+							</td>
+							<td ng-switch="edit_target == key">						
+								<form ng-switch-when="true" ng-submit="save(key,edit_value)">
+									<input type="text" class="input-larget" ng-model="edit_value" autofocus="true" ng-blur="cancelEdit()">
+								</form>												
+								<div ng-switch-default ng-click="edit(key,value)">									
+									{{value}}
+								</div>						
+							</td>
+						</tr>
+						<tr>
+							<td ng-switch="edit_target">						
+								<form ng-switch-when="<NEW>" ng-submit="addWatch(edit_value)" class="row">
+									<input type="text" class="input-larget" ng-model="edit_value" autofocus="true" ng-blur="cancelEdit()">			
+								</form>		
+								<button ng-switch-default ng-click="edit('<NEW>','WorldInfo.TimeSeconds')" class="btn">
+									<i class="icon-plus-sign"></i> Add a watch
+								</button>
+							</td>
+							<td></td>
+						</tr>
+					</tbody>
+				</table>								
+			</div>
+		</div>		
+	</div>
 	<script type="text/javascript" src="lib/jquery-1.9.1.min.js"></script>
 	<script type="text/javascript" src="lib/sockjs-0.3.min.js"></script>
 	<script type="text/javascript" src="lib/underscore.min.js"></script>

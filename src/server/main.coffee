@@ -5,6 +5,7 @@ async = require('async')
 {CodeDepot} = require('./depot')
 fs = require('fs')
 {Bridge,Hosts} = require('./ue3')
+vm = require('vm')
 
 class ClientSideFiles extends events.EventEmitter
 	constructor: ->
@@ -30,11 +31,6 @@ class RichBridge extends Bridge
 						cb()	
 
 			async.parallel sequence, =>
-				sleep = (msec) ->
-					fiber = Fiber.current
-					setTimeout (-> fiber.run()), msec			
-					Fiber.yield()				
-
 				@sandbox = 
 					WorldInfo:wko.WorldInfo
 					pc:wko.LocalPC
@@ -54,20 +50,52 @@ class RichBridge extends Bridge
 
 	log : (text) ->
 		@emit 'data', text
+	
+	runScriptInFiber : (v,cb) ->
+		health = true	
 
-	runCoffeeScriptInFiber : (v,cb) ->
-		coffeescript = require('coffee-script')
+		sandbox = _.clone(@sandbox)
 
-		result = null						
+		# to kill timer immediately, we keep timer and fiber objects locally.
+		timer = fiber = null
+
+		sandbox.sleep = (msec) ->
+			# save fiber and timer for halting the timer!
+			fiber = Fiber.current
+			timer = setTimeout (-> fiber.run()), msec
+
+			# we now go to sleep.
+			Fiber.yield()
+
+			# clearing is always good. :)
+			timer = fiber = null
+
+			# we're interrupted?
+			throw "User halted" unless health
+
+		result = null
 		
-		fiberMain = =>
+		fiberMain = =>			
 			try
-				result = String(coffeescript.eval(v,{sandbox:_.clone(@sandbox)}))
+				result = String(vm.runInNewContext(v,sandbox))
 			catch e						
-				result = e.toString()
+				result = "Exception:#{e.toString()}"
 			cb null, {log:result}
 
 		Fiber(fiberMain).run()
+
+		# to halt execution, stop method is provided. :)
+		stop: ->
+			# tell them we are sick.
+			health = false
+
+			# if we have a running timer?
+			if timer
+				# clear the timer
+				clearTimeout timer 
+
+				# and resume the fiber
+				fiber.run()
 
 hosts = new Hosts(RichBridge)
 depot = new CodeDepot()
@@ -77,6 +105,9 @@ connections = []
 class ClientConnection
 	constructor : (@conn) ->
 		connections.push @		
+
+		@watches = []
+		@watchValues = {}
 
 		updateCodeList = => @send {invalidated:true}
 		closeConnection = => 
@@ -135,9 +166,18 @@ class ClientConnection
 			switch k		
 				when 'run' 
 					if @bridge
-						@bridge.runCoffeeScriptInFiber(v,cb) 
+						@send {running:true}
+						code = require('coffee-script').compile(v)
+						@script = @bridge.runScriptInFiber code, (err,result) =>
+							@script = null
+							@send {running:false}
+							cb(err,result)
+
 					else
 						cb('no connection')
+
+				when 'stop'
+					@script.stop() if @script
 
 				when 'save'
 					depot.save v, (key) ->
@@ -171,6 +211,26 @@ class ClientConnection
 						@setBridge(hosts.bridges[index])
 						cb(null,"host seleceted")
 
+				when 'watch'
+					i = @watches.indexOf v
+					if i < 0
+						@watches.push v
+					cb(null,"ok")
+
+				when 'unwatch'
+					@watches = _.without @watches, v
+					cb(null,"ok")
+
+	tick : ->
+		if @bridge
+			for watch in @watches
+				do (watch) =>
+					@bridge.runScriptInFiber "#{watch}", (err,result) =>					
+						value = result.log
+						if @watchValues[watch] != value
+							@watchValues[watch] = value
+							@send watch:{key:watch,val:value}
+
 	getHostList : ->
 		hosts.bridges.map (x)->x.name()
 
@@ -193,4 +253,8 @@ server.listen 3338
 # trying to connect local unreal engine3
 hosts.connect port:1336
 
+setInterval (->
+	for connection in connections
+		connection.tick()
+	), 100
 

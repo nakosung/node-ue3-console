@@ -3,10 +3,20 @@ assert = require 'assert'
 async = require 'async'
 
 describe 'ue3prim', ->
+	class Object
+		constructor:(@id) ->
+		toString:-> @id
+
+	class TestBridge
+		access:(id,cb) ->
+			cb new Object(id)
+
+	bridge = new TestBridge()
+
 	check = (cases,done,type) ->
 		jobs = cases.map (src) -> 
 			(cb) -> 
-				from src, null, (out) ->
+				from src, bridge, (out) ->
 					assert.ok out instanceof type, out
 					assert.equal src, to out
 					cb()			
@@ -27,5 +37,14 @@ describe 'ue3prim', ->
 		]
 
 		check cases, done, Rotator
+
+	it 'should parse and build object', (done) ->
+		cases = [
+			"class'A.B'",
+			"MyTestClass'A.B'",
+			"MyGRI_TSV'tsv-test.TheWorld:PersistentLevel.MyGRI_TSV_0'"
+		]
+
+		check cases, done, Object
 
 	

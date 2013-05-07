@@ -74,7 +74,7 @@ class Bridge extends events.EventEmitter
 	getSuperClassOfClass : (classId,cb) ->
 		@send classId, 'super', (superClassId) =>			
 			o = @objects[superClassId]			
-			if o or superClassId is "#-1"
+			if o or superClassId is "None"
 				cb(o)
 			else
 				@readClass superClassId, cb
@@ -101,7 +101,7 @@ class Bridge extends events.EventEmitter
 		
 	access : (id,cb) ->
 		body = (cb) =>
-			if (id == "#-1")
+			if (id == "None")
 				cb(null)
 			else
 				o = @objects[id]
@@ -144,7 +144,7 @@ class Class extends Object
 		BaseClass = @superClass?.UEObjectClass or Object
 		class UEObject extends BaseClass
 			constructor : (@bridge, @id, @class) ->
-			toString : -> "#{self.name}_#{@id}"
+			toString : -> @id
 
 		@UEObjectClass = UEObject				
 
