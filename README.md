@@ -5,6 +5,10 @@ UnrealEngine3 + Node.js
 
 Remote console for scripting unreal engine3 in coffee script. 
 
+**Caution: Only for UnrealEngine3 licensees**
+
+You should license UnrealEngine3 to compile native codes
+
 **How to install**
 
 1. Prepare __redis__ at localhost
