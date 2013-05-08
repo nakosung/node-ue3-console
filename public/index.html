@@ -60,7 +60,7 @@
 			</ul>			
 			<div class="tab-content">
 				<div ng-switch="edit_target">
-					<form ng-switch-when="<TITLE>" ng-submit="cancelEdit()">					
+					<form ng-switch-when="<TITLE>" ng-submit="server.save() && cancelEdit()">					
 						<input type="text" class="input-xlarge" ng-model="server.title" autofocus="true" ng-blur="cancelEdit()">
 					</form>
 					<div ng-switch-default ng-click="edit('<TITLE>',server.title)">
