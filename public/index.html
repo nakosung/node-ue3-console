@@ -10,16 +10,20 @@
 	<style type="text/css">
 		#watch, .CodeMirror { font-family: Consolas, 'Liberation Mono', Courier, monospace; font-size:12px; }
       	.CodeMirror {border-top: 1px solid black; border-bottom: 1px solid black;}
-      	.CodeMirror-activeline-background {background: #e8f2ff !important;}
+      	.CodeMirror-activeline-background {background: #e8f2ff !important;}      	
       	path { fill:none; stroke:steelblue; stroke-width: 2;}
     </style>	
+    <!-- jQuery -->
+	<script type="text/javascript" src="lib/jquery-1.9.1.min.js"></script>
     <!-- Angular.js : load first for ng-cloak -->
     <script type="text/javascript" src="lib/angular.min.js"></script>
 </head>
-<body ng-controller="CodeCtrl" ng-cloak>
+<body ng-controller="CodeCtrl" ng-cloak>	
 	<div class="navbar">
 		<div class="navbar-inner">
-			<a class="brand">UnrealEngine3 Node.js interface</a>
+			<a class="brand">				
+				UnrealEngine3 Node.js interface
+			</a>
 
 			<ul class="nav" ng-switch="server.online">
 				<li class="dropdown" ng-switch-when="true">
@@ -48,15 +52,20 @@
 		<div class="span1"></div>
 		<div class="row tabbable tabs-left">						
 			<ul class="nav nav-tabs span4" collapse="!server.list">				
-				<li ng-class="{'nav-header':true,active:server.active == code.id}" ng-repeat="code in server.list" ng-click="server.load(code.id)">
+				<li ng-class="{'nav-header':true,active:server.active == code.id}" ng-repeat="code in server.list" ng-click="server.load(code.id)" style="height:40px">
 					<a> {{code.title}} <button class="btn btn-mini" ng-click="discard(code.id)" showonhoverparent><i class="icon-trash"></i></button>
 					</a>					
 				</li>					
 				<xychart val="server.plot"></xychart>
 			</ul>			
 			<div class="tab-content">
-				<div>
-					<input type="text" class="input-large" ng-model="server.title">
+				<div ng-switch="edit_target">
+					<form ng-switch-when="<TITLE>" ng-submit="cancelEdit()">					
+						<input type="text" class="input-xlarge" ng-model="server.title" autofocus="true" ng-blur="cancelEdit()">
+					</form>
+					<div ng-switch-default ng-click="edit('<TITLE>',server.title)">
+						<h3>Title : {{server.title}}</h3>
+					</div>
 				</div>
 				<div class="btn-group">
 					<button 
@@ -64,9 +73,10 @@
 						ng-click="server.run({stop:server.running})">
 						<i ng-class="{'icon-play':!server.running,'icon-stop':server.running,'icon-white':true}"></i> {{run_action()}}! (ctrl+B)</button>
 					<button class="btn" ng-click="server.save()">Save (ctrl+S)</button>									
-				</div>				
+				</div>			
+				<div style="height:8px"></div>
 				<textarea id="code" rows="10" cols="80" ui-codemirror="{theme:'monokai',lineNumbers:true,indentWithTabs:true,indentUnit:4}" ng-model="server.code"></textarea>			
-				<textarea id="logs" rows="10" cols="80" ui-codemirror="{theme:'cobalt'}" ng-model="server.logs"></textarea>
+				<textarea id="logs" rows="10" cols="80" ui-codemirror="{theme:'cobalt',lineWrapping:true,readOnly:true}" ng-model="server.logs"></textarea>
 			</div>
 		</div>				
 		<div class="row">
@@ -81,7 +91,7 @@
 						</tr>
 					</thead>			
 					<tbody>
-						<tr ng-repeat="(key,value) in server.watches">
+						<tr ng-repeat="(key,value) in server.watches" style="height:45px">
 							<td>
 								{{key}}
 								<button class="btn btn-mini" ng-click="server.unwatch(key)" showonhoverparent><i class="icon-trash"></i></button>
@@ -110,9 +120,7 @@
 				</table>								
 			</div>
 		</div>		
-	</div>
-	<!-- jQuery -->
-	<script type="text/javascript" src="lib/jquery-1.9.1.min.js"></script>
+	</div>	
 	<!-- sock.js -->
 	<script type="text/javascript" src="lib/sockjs-0.3.min.js"></script>
 	<!-- underscore.js -->
