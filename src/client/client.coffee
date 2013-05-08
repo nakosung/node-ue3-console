@@ -73,6 +73,8 @@ app.factory 'node', ($rootScope) ->
 			@list = null
 			@active = null
 			@online = false
+			@hosts = []
+			@host = null
 
 			@print "Trying to connect"			
 			@sock = new SockJS('/echo')

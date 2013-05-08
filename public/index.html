@@ -12,28 +12,36 @@
       	.CodeMirror {border-top: 1px solid black; border-bottom: 1px solid black;}
       	.CodeMirror-activeline-background {background: #e8f2ff !important;}
       	path { fill:none; stroke:steelblue; stroke-width: 2;}
-      	
     </style>	
+    <!-- Angular.js : load first for ng-cloak -->
+    <script type="text/javascript" src="lib/angular.min.js"></script>
 </head>
-<body ng-controller="CodeCtrl">
+<body ng-controller="CodeCtrl" ng-cloak>
 	<div class="navbar">
 		<div class="navbar-inner">
-			<a class="brand">UnrealEngine3 Node.js interface {{status()}}</a>
+			<a class="brand">UnrealEngine3 Node.js interface</a>
 
-			<span class="dropdown">
-				<a class="dropdown-toggle">
+			<ul class="nav" ng-switch="server.online">
+				<li class="dropdown" ng-switch-when="true">
+					<a class="dropdown-toggle">
 					{{server.host}}
-				</a>
-				<ul class="dropdown-menu">
-					<li ng-repeat="host in server.hosts" ng-click="server.switchHost(host)">
-						<a>{{host}}</a>
-					</li>
-				</ul>
-			</span>
+					</a>
+					<ul class="dropdown-menu">
+						<li ng-repeat="host in server.hosts" ng-click="server.switchHost(host)">
+							<a>{{host}}</a>
+						</li>
+					</ul>
+				</li>
+				<li ng-switch-default>
+					<a>Offline</a>
+				</li>
+			</ul>
 
-			<div class="pull-right">
-				<a href="http://github.com/nakosung">nakosung</a>
-			</div>
+			<ul class="nav pull-right">
+				<li>					
+					<a href="http://github.com/nakosung">nakosung</a>			
+				</li>
+			</ul>
 		</div>		
 	</div>	
 	<div class="container" collapse="!server.online">		
@@ -103,16 +111,22 @@
 			</div>
 		</div>		
 	</div>
+	<!-- jQuery -->
 	<script type="text/javascript" src="lib/jquery-1.9.1.min.js"></script>
+	<!-- sock.js -->
 	<script type="text/javascript" src="lib/sockjs-0.3.min.js"></script>
+	<!-- underscore.js -->
 	<script type="text/javascript" src="lib/underscore.min.js"></script>
+	<!-- Code mirror -->
 	<script type="text/javascript" src="lib/codemirror.js"></script>
 	<script type="text/javascript" src="lib/coffeescript.js"></script>	
-	<script type="text/javascript" src="lib/angular.min.js"></script>
+	<!-- Angular.js -->	
 	<script type="text/javascript" src="lib/angular-ui.min.js"></script>
 	<script type="text/javascript" src="lib/ui-bootstrap-0.3.0.min.js"></script>
 	<script type="text/javascript" src="lib/ui-bootstrap-tpls-0.3.0.js"></script>	
+	<!-- d3.js -->
 	<script type="text/javascript" src="lib/d3.v3.min.js"></script>
+	<!-- Our client source code -->
 	<script type="text/javascript" src="lib/client.js"></script>
 </body>
 </html>
