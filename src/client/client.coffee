@@ -154,7 +154,7 @@ app.factory 'node', ($rootScope) ->
 
 	new Server()
 
-app.controller 'CodeCtrl', ($scope,node) ->
+app.controller 'CodeCtrl', ($scope,node,$dialog) ->
 	$scope.server = node		
 	$scope.status = ->
 		if node.online then "ONLINE" else "OFFLINE"
@@ -175,6 +175,16 @@ app.controller 'CodeCtrl', ($scope,node) ->
 
 	$scope.run_action = ->
 		if node.running then "Stop" else "Run"
+
+	$scope.discard = (id) ->
+		title = "Please confirm"
+		msg = "Do you really want to delete?"
+		btns = [{result:'cancel',label:'Cancel'},{result:'ok',label:'ok',cssClass:'btn-danger'}]
+		$dialog.messageBox(title, msg, btns)
+			.open()
+			.then (result)->
+				if result == 'ok'
+					node.discard(id)
 	
 	# I couldn't make this key binding to work with angular-ui
 	$(document).keydown (e) ->		

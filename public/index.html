@@ -18,7 +18,7 @@
 <body ng-controller="CodeCtrl">
 	<div class="navbar">
 		<div class="navbar-inner">
-			<a class="brand" href="#">UnrealEngine3 Node.js interface {{status()}}</a>
+			<a class="brand">UnrealEngine3 Node.js interface {{status()}}</a>
 
 			<span class="dropdown">
 				<a class="dropdown-toggle">
@@ -26,7 +26,7 @@
 				</a>
 				<ul class="dropdown-menu">
 					<li ng-repeat="host in server.hosts" ng-click="server.switchHost(host)">
-						<a href="#">{{host}}</a>
+						<a>{{host}}</a>
 					</li>
 				</ul>
 			</span>
@@ -41,7 +41,8 @@
 		<div class="row tabbable tabs-left">						
 			<ul class="nav nav-tabs span4" collapse="!server.list">				
 				<li ng-class="{'nav-header':true,active:server.active == code.id}" ng-repeat="code in server.list" ng-click="server.load(code.id)">
-					<a href="#"> {{code.title}}</a>
+					<a> {{code.title}} <button class="btn btn-mini" ng-click="discard(code.id)" showonhoverparent><i class="icon-trash"></i></button>
+					</a>					
 				</li>					
 				<xychart val="server.plot"></xychart>
 			</ul>			
@@ -54,8 +55,7 @@
 						ng-class="{btn:true,'btn-primary':true,'disabled':!server.host}" 
 						ng-click="server.run({stop:server.running})">
 						<i ng-class="{'icon-play':!server.running,'icon-stop':server.running,'icon-white':true}"></i> {{run_action()}}! (ctrl+B)</button>
-					<button class="btn" ng-click="server.save()">Save (ctrl+S)</button>				
-					<button class="btn btn-danger" ng-click="server.discard(server.active)">Discard</button>				
+					<button class="btn" ng-click="server.save()">Save (ctrl+S)</button>									
 				</div>				
 				<textarea id="code" rows="10" cols="80" ui-codemirror="{theme:'monokai',lineNumbers:true,indentWithTabs:true,indentUnit:4}" ng-model="server.code"></textarea>			
 				<textarea id="logs" rows="10" cols="80" ui-codemirror="{theme:'cobalt'}" ng-model="server.logs"></textarea>
@@ -76,7 +76,7 @@
 						<tr ng-repeat="(key,value) in server.watches">
 							<td>
 								{{key}}
-								<button class="btn btn-small" ng-click="server.unwatch(key)" showonhoverparent><i class="icon-trash"></i></button>
+								<button class="btn btn-mini" ng-click="server.unwatch(key)" showonhoverparent><i class="icon-trash"></i></button>
 							</td>
 							<td ng-switch="edit_target == key">						
 								<form ng-switch-when="true" ng-submit="save(key,edit_value)">
@@ -111,6 +111,7 @@
 	<script type="text/javascript" src="lib/angular.min.js"></script>
 	<script type="text/javascript" src="lib/angular-ui.min.js"></script>
 	<script type="text/javascript" src="lib/ui-bootstrap-0.3.0.min.js"></script>
+	<script type="text/javascript" src="lib/ui-bootstrap-tpls-0.3.0.js"></script>	
 	<script type="text/javascript" src="lib/d3.v3.min.js"></script>
 	<script type="text/javascript" src="lib/client.js"></script>
 </body>

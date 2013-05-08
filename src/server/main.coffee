@@ -46,7 +46,10 @@ class RichBridge extends Bridge
 
 				done()
 
-	name : -> JSON.stringify(@opts)
+	name : -> 
+		host = @opts?.host or "localhost"
+		port = @opts?.port or 1337
+		"#{host}:#{port}"
 
 	log : (text) ->
 		@emit 'data', text
@@ -233,7 +236,7 @@ class ClientConnection
 		if @bridge
 			for watch in @watches
 				do (watch) =>
-					@bridge.runScriptInFiber "#{watch}", (err,result) =>					
+					@bridge.runScriptInFiber "#{watch}", (err,result) =>
 						value = result.log
 						if @watchValues[watch] != value
 							@watchValues[watch] = value

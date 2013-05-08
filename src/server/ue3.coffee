@@ -118,7 +118,7 @@ class Bridge extends events.EventEmitter
 		o
 
 class Object
-	constructor : (@bridge,@id,@class) ->				
+	constructor : (@bridge,@id,@classObject) ->				
 
 	# low-level accessor
 	read : (field,cb) ->
@@ -143,7 +143,7 @@ class Class extends Object
 		# this is the real reflected class!
 		BaseClass = @superClass?.UEObjectClass or Object
 		class UEObject extends BaseClass
-			constructor : (@bridge, @id, @class) ->
+			constructor : (@bridge, @id, @classObject = self) ->
 			toString : -> @id
 
 		@UEObjectClass = UEObject				
@@ -151,7 +151,7 @@ class Class extends Object
 		# declare methods and properties within its prototype
 		@declareMethodsAndProperties(@UEObjectClass.prototype)
 
-	declareMethodsAndProperties : (target) ->
+	declareMethodsAndProperties : (target) ->		
 		for prop in @props			
 			do (prop) ->
 				target.__defineGetter__ prop, -> @read prop
