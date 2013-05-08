@@ -26,7 +26,6 @@ from_unrealengine3 = (text,bridge,cb) ->
 			array = /^\((.*)\)/.exec(text)
 			if array
 				elems = array[1].split(',')
-				console.log elems
 				seq = elems.map (e) -> 
 					(cb) -> from_unrealengine3 e, bridge, (result) ->
 						cb(null,result)

@@ -192,4 +192,4 @@ class Hosts extends events.EventEmitter
 
 exports.Hosts = Hosts					
 exports.Bridge = Bridge
-
+exports.Object = Object

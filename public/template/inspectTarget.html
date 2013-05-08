@@ -1,0 +1,29 @@
+<div class="modal-header">
+	<h1>Inspect!</h1>
+</div>
+<div class="modal-body">
+	<p><input ng-model="target" class="input-xxlarge" placeholder="WorldInfo.TimeSeconds" autofocus="true"></p>
+	<div collapse="!data">		
+		<dl>
+			<div ng-repeat="(key,value) in data">
+				<dt>{{key}}</dt>
+				<dd>
+					{{value.val}}					
+				</dd>
+				<table class="table" style="font-size:12px">
+					<tr ng-repeat="(k,v) in value.meta">
+						<td>
+							{{k}}
+						</td>
+						<td>
+							{{v}}
+						</td>
+					</tr>
+				</table>				
+			</div>
+		</dl>
+	</div>
+</div>
+<div class="modal-footer">
+	<button class="btn btn-primary" ng-click="close()">Done</button>
+</div>

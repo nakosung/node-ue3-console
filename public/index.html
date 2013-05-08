@@ -108,11 +108,16 @@
 						<tr>
 							<td ng-switch="edit_target">						
 								<form ng-switch-when="<NEW>" ng-submit="addWatch(edit_value)" class="row">
-									<input type="text" class="input-larget" ng-model="edit_value" autofocus="true" ng-blur="cancelEdit()">			
+									<input type="text" class="input-larget" ng-model="edit_value" autofocus="true" ng-blur="cancelEdit()" placeholder="WorldInfo.TimeSeconds">			
 								</form>		
-								<button ng-switch-default ng-click="edit('<NEW>','WorldInfo.TimeSeconds')" class="btn">
-									<i class="icon-plus-sign"></i> Add a watch
-								</button>
+								<div ng-switch-default>
+									<button ng-click="edit('<NEW>','')" class="btn">
+										<i class="icon-plus-sign"></i> Add a watch
+									</button>
+									<button class="btn" ng-click="inspect()">
+										<i class="icon-eye-open"></i> Inspect(ctrl+Q)
+									</button>
+								</div>																
 							</td>
 							<td></td>
 						</tr>

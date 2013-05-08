@@ -4,7 +4,7 @@ Fiber = require('fibers')
 async = require('async')
 {CodeDepot} = require('./depot')
 fs = require('fs')
-{Bridge,Hosts} = require('./ue3')
+{Bridge,Hosts,Object} = require('./ue3')
 vm = require('vm')
 
 class ClientSideFiles extends events.EventEmitter
@@ -38,6 +38,15 @@ class RichBridge extends Bridge
 					access:(x) => @access(x)																				
 					log:(args...) => @log args.toString()
 					sleep:(ms) => sleep(ms)				
+					inspect:(v) =>
+						val = String(v)
+						meta = {}						
+						if v instanceof Object
+							meta.type = v.classObject?.name
+							for prop in v.classObject?.props
+								meta[prop] = String(v[prop])						
+						val:val
+						meta:meta
 					chart:(x,y) => 
 						unless y
 							y = x
@@ -170,12 +179,26 @@ class ClientConnection
 				when 'run' 
 					if @bridge
 						@send {running:true}
-						code = require('coffee-script').compile(v)
-						@script = @bridge.runScriptInFiber code, (err,result) =>
-							@script = null
-							@send {running:false}
-							cb(err,result)
+						try
+							code = require('coffee-script').compile(v)
+							@script = @bridge.runScriptInFiber code, (err,result) =>
+								@script = null
+								@send {running:false}
+								cb(err,result)
+						catch e
+							cb e.error
 
+					else
+						cb('no connection')
+
+				when 'inspect'
+					if @bridge
+						code = "JSON.stringify(inspect(#{v.target}))"
+						try							
+							@bridge.runScriptInFiber code, (err,result) =>								
+								cb null, inspect:{id:v.id,err:err,result:result?.log}
+						catch e
+							cb e.error
 					else
 						cb('no connection')
 

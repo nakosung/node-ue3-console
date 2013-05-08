@@ -59,6 +59,8 @@ app.directive 'showonhoverparent', ->
 app.factory 'node', ($rootScope) ->		
 	class Server
 		constructor : ->			
+			@inspectId = 0
+			@inspectCallbacks = {}
 			@plot = []
 			@watches = {}
 			@code = "log 'Hello world'"
@@ -70,6 +72,9 @@ app.factory 'node', ($rootScope) ->
 			!$rootScope.$$phase && $rootScope.$apply()
 
 		handleConnectionLost : ->
+			for k, v of @inspectCallbacks
+				v('connection lost')
+			@inspectCallbacks = {}
 			@list = null
 			@active = null
 			@online = false
@@ -112,12 +117,24 @@ app.factory 'node', ($rootScope) ->
 							# value of watch target changed
 							when "watch" then @watches[v.key] = v.val
 
+							# inspect!
+							when "inspect"  
+								try
+									@inspectCallbacks[v.id]? v.err, JSON.parse(v.result)
+								catch e
+								delete @inspectCallbacks[v.id]
+
 							# previous code-list was invalidated.
 							when "invalidated" then @send list:null
 				catch exception
 					console.log exception, e
 
 				@updateAngularJs()				
+
+		inspect : (target,cb) ->
+			iid = @inspectId++	
+			@inspectCallbacks[iid] = cb		
+			@send inspect:{id:iid,target:target}
 
 		refresh : -> window.location.reload()
 
@@ -156,6 +173,19 @@ app.factory 'node', ($rootScope) ->
 
 	new Server()
 
+app.controller 'InspectTargetDialogCtrl', ($scope, dialog, node) ->
+	$scope.data = null
+	$scope.$watch 'target', (newVal,oldVal) ->
+		if newVal and newVal != ''
+			node.inspect newVal, (err,result) ->
+				$scope.$apply ->
+					$scope.data = {}
+					$scope.data[newVal] = result
+		else
+			$scope.data = null			
+	$scope.close = () ->
+		dialog.close()
+
 app.controller 'CodeCtrl', ($scope,node,$dialog) ->
 	$scope.server = node		
 	$scope.status = ->
@@ -187,6 +217,17 @@ app.controller 'CodeCtrl', ($scope,node,$dialog) ->
 			.then (result)->
 				if result == 'ok'
 					node.discard(id)
+
+	$scope.inspect = ->
+		title = "Inspect"
+		d = $dialog.dialog 
+			backdrop:true
+			keyboard:true
+			backdropClick:true
+			templateUrl:'template/inspectTarget.html'
+			controller:'InspectTargetDialogCtrl'
+		d.open()
+
 	
 	# I couldn't make this key binding to work with angular-ui
 	$(document).keydown (e) ->		
@@ -196,4 +237,9 @@ app.controller 'CodeCtrl', ($scope,node,$dialog) ->
 		
 		if e.keyCode == 83 and e.ctrlKey
 			node.save()
+			false
+
+		if e.keyCode == 81 and e.ctrlKey
+			$scope.$apply ->
+				$scope.inspect()
 			false
