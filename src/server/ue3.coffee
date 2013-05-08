@@ -132,7 +132,12 @@ class Object
 	write : (field,value,cb) -> @bridge.write @id, field, ue3prim.to(value), cb
 
 	# low-level accessor
-	exec : (command,cb) -> @bridge.exec @id, command, cb
+	exec : (command,cb) -> 
+		body = (cb) =>
+			@bridge.exec @id, command, (result) =>
+				ue3prim.from(result,@bridge,cb)
+
+		fiber_exec body, cb
 
 class Class extends Object
 	constructor : (@bridge, @id,@name,@superClass,@props,@funcs) ->		
