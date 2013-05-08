@@ -2,17 +2,13 @@ _ = require('underscore')
 async = require 'async'
 
 # primitives
-class UEPrim
-	export:-> throw "NOTIMPL"
-	toString:->@export()
-
-class Vector3 extends UEPrim
+class Vector3 
 	constructor:(@X,@Y,@Z) ->
-	export:->"(X=#{@X},Y=#{@Y},Z=#{@Z})"
+	toString:->"(X=#{@X},Y=#{@Y},Z=#{@Z})"
 
-class Rotator extends UEPrim
+class Rotator 
 	constructor:(@Pitch,@Yaw,@Roll) ->
-	export:->"(Pitch=#{@Pitch},Yaw=#{@Yaw},Roll=#{@Roll})"	
+	toString:->"(Pitch=#{@Pitch},Yaw=#{@Yaw},Roll=#{@Roll})"	
 
 parsers = 
 [
@@ -26,7 +22,7 @@ parsers =
 	fn:(array,bridge,cb)->
 		elems = array[1].split(',')
 		seq = elems.map (e) -> 
-			(cb) -> from_unrealengine3 e, bridge, (result) ->
+			(cb) -> from e, bridge, (result) ->
 				cb(null,result)
 		async.parallel seq, (err,result) ->
 			cb(result)
@@ -43,16 +39,9 @@ from = (text,bridge,cb) ->
 			return
 	
 	num = parseFloat(text) 
-	if _.isNaN(num)			
-		cb(text)
-	else 			
-		cb(num)
+	if _.isNaN(num)	then cb(text) else cb(num)
 
-to = (value) ->
-	if value instanceof UEPrim
-		value.export()
-	else
-		value.toString()
+to = (value) -> (value)
 
 exports.Vector3 = Vector3
 exports.Rotator = Rotator
