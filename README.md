@@ -11,6 +11,7 @@ You should license UnrealEngine3 to compile native codes
 
 **How to install**
 
-1. Prepare __redis__ at localhost
-2. __grunt__ to make
-3. __node run.js__ to run
+1. __npm install__ to install deps
+2. Prepare __redis__ at localhost
+3. __grunt__ to make
+4. __node run.js__ to run
