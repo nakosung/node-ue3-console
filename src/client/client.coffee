@@ -173,16 +173,21 @@ app.factory 'node', ($rootScope) ->
 
 	new Server()
 
-app.controller 'InspectTargetDialogCtrl', ($scope, dialog, node) ->
+app.controller 'InspectTargetDialogCtrl', ($scope, dialog, node, $timeout) ->
+	timer = null
 	$scope.data = null
 	$scope.$watch 'target', (newVal,oldVal) ->
 		if newVal and newVal != ''
-			node.inspect newVal, (err,result) ->
-				$scope.$apply ->
-					$scope.data = {}
-					$scope.data[newVal] = result
+			body = ->
+				timer = null
+				node.inspect newVal, (err,result) ->
+					$scope.$apply ->
+						$scope.data = {}
+						$scope.data[newVal] = result			
+			$timeout.cancel(timer) if timer
+			timer = $timeout body, 250
 		else
-			$scope.data = null			
+			$scope.data = null
 	$scope.close = () ->
 		dialog.close()
 
