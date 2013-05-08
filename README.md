@@ -15,3 +15,7 @@ You should license UnrealEngine3 to compile native codes
 2. Prepare __redis__ at localhost
 3. __grunt__ to make
 4. __node run.js__ to run
+
+**Prerequisites**
+
+1. node install -g grunt-cli coffee-script
