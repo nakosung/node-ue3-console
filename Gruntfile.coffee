@@ -7,7 +7,7 @@ module.exports = (grunt) ->
 					sourceMap:true
 				files:
 					'lib/server/main.js' : 'src/server/main.coffee'
-					'lib/server/ue3.js' : 'src/server/ue3.coffee'
+					'lib/server/bridge.js' : 'src/server/bridge.coffee'
 					'lib/server/ue3prim.js' : 'src/server/ue3prim.coffee'
 					'lib/server/depot.js' : 'src/server/depot.coffee'
 			client :

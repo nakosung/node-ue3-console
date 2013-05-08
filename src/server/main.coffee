@@ -3,12 +3,13 @@ _ = require('underscore')
 Fiber = require('fibers')
 async = require('async')
 {CodeDepot} = require('./depot')
-fs = require('fs')
-{Bridge,Hosts,Object} = require('./ue3')
+{Bridge,Hosts,Object} = require('./bridge')
 vm = require('vm')
 
 class ClientSideFiles extends events.EventEmitter
 	constructor: ->
+		fs = require('fs')
+		
 		tell = (e,f) =>
 			if e
 				console.log 'client file changed', e, f
@@ -19,6 +20,9 @@ class ClientSideFiles extends events.EventEmitter
 clientFiles = new ClientSideFiles()
 
 class RichBridge extends Bridge
+	constructor:->
+		super require './ue3prim'
+
 	init:(client,done) ->
 		super client, =>
 			wko_names = 'LocalPC WorldInfo'
@@ -58,7 +62,7 @@ class RichBridge extends Bridge
 	name : -> 
 		host = @opts?.host or "localhost"
 		port = @opts?.port or 1337
-		"#{host}:#{port}"
+		"#{@translator.name} #{host}:#{port}"
 
 	log : (text) ->
 		@emit 'data', text
@@ -168,7 +172,8 @@ class ClientConnection
 			@bridge.on 'close', =>
 				@setBridge null
 
-		@send host:@bridge?.name() or null
+		@send 
+			host:@bridge?.name() or null			
 
 
 	send : (json) -> @conn.write JSON.stringify(json)
