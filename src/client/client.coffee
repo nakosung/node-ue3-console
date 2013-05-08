@@ -88,29 +88,32 @@ app.factory 'node', ($rootScope) ->
 			
 			# message handler
 			@sock.onmessage = (e) =>
-				data = JSON.parse(e.data)
-				for k,v of data
-					switch k
-						when "refresh" then @refresh()
+				try
+					data = JSON.parse(e.data)
+					for k,v of data
+						switch k
+							when "refresh" then @refresh()
 
-						when "log" 			
-							plotted = false
-							try				
-								o = JSON.parse(v)
-								if o.plot								
-									@plot.push(o.plot) 									
-									plotted = true
-							catch e
-							@print v unless plotted
+							when "log" 			
+								plotted = false
+								try				
+									o = JSON.parse(v)
+									if o.plot								
+										@plot.push(o.plot) 									
+										plotted = true
+								catch e
+								@print v unless plotted
 
-						# just pass thru
-						when "code", "title", "active", "list", "hosts", "host", "running" then @[k] = v
+							# just pass thru
+							when "code", "title", "active", "list", "hosts", "host", "running" then @[k] = v
 
-						# value of watch target changed
-						when "watch" then @watches[v.key] = v.val
+							# value of watch target changed
+							when "watch" then @watches[v.key] = v.val
 
-						# previous code-list was invalidated.
-						when "invalidated" then @send list:null
+							# previous code-list was invalidated.
+							when "invalidated" then @send list:null
+				catch exception
+					console.log exception, e
 
 				@updateAngularJs()				
 
@@ -123,6 +126,8 @@ app.factory 'node', ($rootScope) ->
 		discard : (target) -> @send {discard:target}
 
 		save : -> @send {save:{code:@code,title:@title}}
+
+		switchHost : (host) -> @send {host:host}
 
 		run : (opts) -> 
 			@plot = []

@@ -167,7 +167,7 @@ class Hosts extends events.EventEmitter
 	constructor: (@BridgeClass = Bridge)->		
 		@bridges = []
 
-	connect: (opts) ->		
+	connect: (opts,cb) ->		
 		reconnect = =>
 			console.log 'trying to reconect'
 			setTimeout (=> @connect opts), 1000

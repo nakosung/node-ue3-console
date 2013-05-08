@@ -3,6 +3,8 @@ events = require('events')
 async = require('async')
 redis = require('redis')
 redisClient = redis.createClient()
+redisClient.on 'error', ->
+	console.error 'redis is not accessible, please run redis at localhost'
 
 class CodeDepot extends events.EventEmitter
 	load : (key,cb) ->			

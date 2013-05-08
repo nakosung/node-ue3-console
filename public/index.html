@@ -20,18 +20,26 @@
 		<div class="navbar-inner">
 			<a class="brand" href="#">UnrealEngine3 Node.js interface {{status()}}</a>
 
-			<select class="input-xlarge" ui-select ng-model="server.host">
-				<option ng-repeat="host in server.hosts" value="{{host}}">{{host}}</option>
-			</select>
+			<span class="dropdown">
+				<a class="dropdown-toggle">
+					{{server.host}}
+				</a>
+				<ul class="dropdown-menu">
+					<li ng-repeat="host in server.hosts" ng-click="server.switchHost(host)">
+						<a href="#">{{host}}</a>
+					</li>
+				</ul>
+			</span>
+
 			<div class="pull-right">
 				<a href="http://github.com/nakosung">nakosung</a>
 			</div>
 		</div>		
 	</div>	
-	<div class="container" collapse="!server.list">		
+	<div class="container" collapse="!server.online">		
 		<div class="span1"></div>
 		<div class="row tabbable tabs-left">						
-			<ul class="nav nav-tabs span4">				
+			<ul class="nav nav-tabs span4" collapse="!server.list">				
 				<li ng-class="{'nav-header':true,active:server.active == code.id}" ng-repeat="code in server.list" ng-click="server.load(code.id)">
 					<a href="#"> {{code.title}}</a>
 				</li>					
@@ -45,7 +53,7 @@
 					<button 
 						ng-class="{btn:true,'btn-primary':true,'disabled':!server.host}" 
 						ng-click="server.run({stop:server.running})">
-						<i ng-class="{'icon-play':!server.running,'icon-repeat':server.running,'icon-white':true}"></i> {{run_action()}}! (ctrl+B)</button>
+						<i ng-class="{'icon-play':!server.running,'icon-stop':server.running,'icon-white':true}"></i> {{run_action()}}! (ctrl+B)</button>
 					<button class="btn" ng-click="server.save()">Save (ctrl+S)</button>				
 					<button class="btn btn-danger" ng-click="server.discard(server.active)">Discard</button>				
 				</div>				

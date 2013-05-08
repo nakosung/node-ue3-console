@@ -202,6 +202,14 @@ class ClientConnection
 				when 'hosts'					
 					cb(null,{hosts:@getHostList()})		
 
+				when 'host'
+					i = @getHostList().indexOf(v)
+					if i >= 0
+						@setBridge hosts.bridges[i]
+						cb(null,{log:'switching host...'})
+					else
+						cb('invalid host')
+
 				when 'connect'
 					hosts = @getHostList()
 					index = hosts.indexOf(v)
@@ -251,6 +259,18 @@ echo.installHandlers server, {prefix:'/echo'}
 server.listen 3338
 
 # trying to connect local unreal engine3
+getAddresses = ->
+	os = require('os')
+
+	interfaces = os.networkInterfaces()
+	addresses = []
+	for k,v of interfaces
+	    for address in v
+	        if address.family == 'IPv4' and not address.internal
+	            addresses.push(address.address)
+	addresses
+	        
+console.log getAddresses()	      
 hosts.connect port:1336
 
 setInterval (->
