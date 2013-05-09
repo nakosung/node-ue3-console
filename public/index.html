@@ -49,15 +49,15 @@
 		</div>		
 	</div>	
 	<div class="container" collapse="!server.online">		
-		<div class="span1"></div>
-		<div class="row tabbable tabs-left">						
-			<ul class="nav nav-tabs span4" collapse="!server.list">				
+		<div class="span1"></div>		
+		<div class="row tabbable tabs-left">			
+			<ul class="nav nav-tabs span4" collapse="!server.list">
 				<li ng-class="{'nav-header':true,active:server.active == code.id}" ng-repeat="code in server.list" ng-click="server.load(code.id)" style="height:40px">
 					<a> {{code.title}} <button class="btn btn-mini" ng-click="discard(code.id)" showonhoverparent><i class="icon-trash"></i></button>
 					</a>					
 				</li>					
 				<xychart val="server.plot"></xychart>
-			</ul>			
+			</ul>												
 			<div class="tab-content">
 				<div ng-switch="edit_target">
 					<form ng-switch-when="<TITLE>" ng-submit="server.save() && cancelEdit()">					
