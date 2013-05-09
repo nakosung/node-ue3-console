@@ -12,6 +12,9 @@ class Rotator
 
 parsers = 
 [
+	p:/^None/
+	fn:(args...,cb)->cb null
+,
 	p:/^\(X=(\-?\d+(\.\d+)?),Y=(\-?\d+(\.\d+)?),Z=(\-?\d+(\.\d+)?)/
 	fn:(vec3,bridge,cb)->cb new Vector3(parseFloat(vec3[1]),parseFloat(vec3[3]),parseFloat(vec3[5]))
 ,

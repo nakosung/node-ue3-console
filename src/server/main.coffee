@@ -9,7 +9,7 @@ vm = require('vm')
 class ClientSideFiles extends events.EventEmitter
 	constructor: ->
 		fs = require('fs')
-		
+
 		tell = (e,f) =>
 			if e
 				console.log 'client file changed', e, f
@@ -59,10 +59,8 @@ class RichBridge extends Bridge
 
 				done()
 
-	name : -> 
-		host = @opts?.host or "localhost"
-		port = @opts?.port or 1337
-		"#{@translator.name} #{host}:#{port}"
+	name : -> 		
+		"#{@translator.name} #{@opts.transport}:#{@opts.host}:#{@opts.port}"
 
 	log : (text) ->
 		@emit 'data', text
@@ -113,7 +111,47 @@ class RichBridge extends Bridge
 				# and resume the fiber
 				fiber.run()
 
-hosts = new Hosts(RichBridge)
+class Transport extends events.EventEmitter
+	constructor:(@client) ->
+		@trid = 0
+		@buffer = ""
+
+		# packet may be split
+		@client.on 'data', (data) =>
+			@buffer += data.toString()			
+			while true
+				str = @getLine()
+				break unless str
+
+				i = str.indexOf(' ')
+				trid = parseInt(str.substr(0,i))
+				@emit trid, str.substr(i+1)
+
+		@client.on 'close', => @emit 'close'
+
+	getLine : ->
+		i = @buffer.indexOf("\r\n")
+		if i<0
+			null
+		else
+			result = @buffer.substr(0,i)
+			@buffer = @buffer.substr(i+2)
+			result
+
+	send : (args...,cb) ->
+		command = args.join(' ')
+		my_trid = @trid++
+		buf = "#{my_trid} #{command}\r\n"
+
+		@once my_trid, cb 
+		@client.write buf
+
+hosts = new Hosts 
+	bridge:
+		UnrealEngine3:RichBridge
+	transport:
+		text:Transport
+
 depot = new CodeDepot()
 
 connections = []
@@ -239,16 +277,7 @@ class ClientConnection
 						@setBridge hosts.bridges[i]
 						cb(null,{log:'switching host...'})
 					else
-						cb('invalid host')
-
-				when 'connect'
-					hosts = @getHostList()
-					index = hosts.indexOf(v)
-					if index < 0
-						cb('invalid host')
-					else
-						@setBridge(hosts.bridges[index])
-						cb(null,"host seleceted")
+						cb('invalid host')				
 
 				when 'watch'
 					i = @watches.indexOf v
@@ -302,7 +331,7 @@ getAddresses = ->
 	addresses
 	        
 console.log getAddresses()	      
-hosts.connect port:1336
+hosts.connect port:1336, transport:'text'
 
 setInterval (->
 	for connection in connections

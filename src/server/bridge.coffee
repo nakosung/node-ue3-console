@@ -4,73 +4,21 @@ _ = require('underscore')
 Fiber = require('fibers')
 async = require('async')
 
-# if cb is null and running within a fiber, call would be blocked! 
-fiber_exec = (body,cb) ->
-	unless _.isFunction(cb)						
-		fiber = Fiber.current
-		if fiber
-			out_result = null
-			done = false
-			waiting = false
-			body (result) ->
-				out_result = result
-				done = true				
-				fiber.run() if waiting			
-			waiting = true
-			Fiber.yield() unless done			
-			out_result
-		else
-			null
-	else
-		body(cb)
-
 class Bridge extends events.EventEmitter
 	constructor : (@translator) ->
-		@trid=0
-		@objects = {}
-		@buffer = ""
+		@objects = {}		
 
-	init: (client,done) ->
-		@client = client		
-
-		# packet may be split
-		client.on 'data', (data) =>
-			@buffer += data.toString()			
-			while true
-				str = @getLine()
-				break unless str
-				i = str.indexOf(' ')
-				trid = parseInt(str.substr(0,i))
-				@emit trid, str.substr(i+1)
-
-		client.on 'close', =>
-			@emit 'close'
-
+	init: (transport,done) ->
+		@transport = transport
+		transport.on 'close', => @emit 'close'
 		done()
 
-	getLine : ->
-		i = @buffer.indexOf("\r\n")
-		if i<0
-			null
-		else
-			result = @buffer.substr(0,i)
-			@buffer = @buffer.substr(i+2)
-			result
-
-	send : (args...,cb) ->
-		command = args.join(' ')
-		my_trid = @trid++
-		buf = "#{my_trid} #{command}\r\n"
-
-		body = (cb) =>			
-			@once my_trid, cb 
-			@client.write buf	
-
-		fiber_exec body, cb
-
+	send : (args...,cb) -> @transport.send(args...,cb)
 	read : (target,field,cb) -> @send target, 'read', field, cb
 	write : (target,field,value,cb) -> @send target, 'write', field, value, cb
-	exec : (target,command,cb) -> @send target, 'exec', command, cb
+	exec : (target,command,cb) -> @send target, 'exec', command..., cb
+	list : (cmd,classId,cb) -> @send classId, cmd, (result) -> cb(_.without result.split(','), '')
+
 	getSuperClassOfClass : (classId,cb) ->
 		@send classId, 'super', (superClassId) =>			
 			o = @objects[superClassId]			
@@ -83,14 +31,14 @@ class Bridge extends events.EventEmitter
 			adaptor = (cb) -> (result) -> cb(null,result)
 			async.parallel [
 				(cb) => @read classId,'name', adaptor(cb)
-				(cb) => @send classId, 'listprop', adaptor(cb)
-				(cb) => @send classId, 'listfunc', adaptor(cb)
+				(cb) => @list 'listprop', classId, adaptor(cb)
+				(cb) => @list 'listfunc', classId, adaptor(cb)
 			], (err,results) =>
-				[className,props,funcs] = results
-				props = _.without props.split(','), ''
-				funcs = _.without funcs.split(','), ''
-				cls = new Class(@,classId,className,superClass,props,funcs)
-				cb(cls)
+				if err
+					cb err,results
+				else
+					[className,props,funcs] = results					
+					cb new Class(@,classId,className,superClass,props,funcs)					
 	getClass : (id,cb) ->
 		@send id,'class', (classId) =>
 			cls = @objects[classId]
@@ -99,37 +47,66 @@ class Bridge extends events.EventEmitter
 			else	
 				@readClass classId,cb
 		
-	access : (id,cb) ->
-		body = (cb) =>
-			if (id == "None")
-				cb(null)
-			else
-				o = @objects[id]
-				if o
-					cb(o)
-				else
-					@getClass id, (result) =>
-						cb @create(result,id)
-		fiber_exec body, cb
+	access : (id,cb) ->				
+		o = @objects[id]
+		if o
+			cb(o)
+		else
+			@getClass id, (result) =>
+				cb @create(result,id)		
 
 	create : (classObject,id) -> 
-		o = new classObject.HostObjectClass(@,id)
+		o = new classObject.hostObjectClass(@,id)
 		@objects[id] = o
 		o
 
 class Object
 	constructor : (@bridge,@id,@classObject) ->				
 
+	# if cb is null and running within a fiber, call would be blocked! 
+	would_block : (body,cb) ->
+		unless _.isFunction(cb)						
+			fiber = Fiber.current
+			if fiber
+				out_result = null
+				done = false
+				waiting = false
+
+				# body function can exit immediately
+				body (result) ->
+					out_result = result
+
+					# mark we're done
+					done = true		
+
+					# if we are waiting, resume the fiber		
+					fiber.run() if waiting			
+
+				# if body didnt' exit, pause the fiber!
+				unless done
+					waiting = true
+					Fiber.yield()
+
+				out_result
+			else
+				throw "callback should be specified outside a fiber"
+		else
+			body(cb)
+
 	# low-level accessor
 	read : (field,cb) ->
 		body = (cb) =>
-			@bridge.read @id, field, (result) =>
+			@bridge.read @id, field, (result) =>				
 				@bridge.translator.from(result,@bridge,cb)
 				
-		fiber_exec body, cb
+		@would_block body, cb
 
 	# low-level accessor
-	write : (field,value,cb) -> @bridge.write @id, field, @bridge.translator.to(value), cb
+	write : (field,value,cb) -> 
+		body = (cb) =>
+			@bridge.write @id, field, @bridge.translator.to(value), cb
+
+		@would_block body, cb
 
 	# low-level accessor
 	exec : (command,cb) -> 
@@ -137,7 +114,7 @@ class Object
 			@bridge.exec @id, command, (result) =>
 				@bridge.translator.from(result,@bridge,cb)
 
-		fiber_exec body, cb
+		@would_block body, cb
 
 class Class extends Object
 	constructor : (@bridge, @id,@name,@superClass,@props,@funcs) ->		
@@ -146,15 +123,15 @@ class Class extends Object
 		self = @
 
 		# this is the real reflected class!
-		BaseClass = @superClass?.HostObjectClass or Object
+		BaseClass = @superClass?.hostObjectClass or Object
 		class HostObject extends BaseClass
 			constructor : (@bridge, @id, @classObject = self) ->
 			toString : -> @id
 
-		@HostObjectClass = HostObject				
+		@hostObjectClass = HostObject				
 
 		# declare methods and properties within its prototype
-		@declareMethodsAndProperties(@HostObjectClass.prototype)
+		@declareMethodsAndProperties(@hostObjectClass.prototype)
 
 	declareMethodsAndProperties : (target) ->		
 		for prop in @props			
@@ -166,32 +143,46 @@ class Class extends Object
 			do (func) ->				
 				target[func] = (args...) ->
 					args = args.map @bridge.translator.to
-					@exec [func,args.join(' ')].join(' ')
+					@exec [func,args...]
 
 class Hosts extends events.EventEmitter
-	constructor: (@BridgeClass = Bridge)->		
+	constructor: (@opts)->		
 		@bridges = []
 
-	connect: (opts,cb) ->		
+	connect: (opts) ->		
 		reconnect = =>
-			console.log 'trying to reconect'
+			console.log 'trying to reconnect'
 			setTimeout (=> @connect opts), 1000
+		
+		host = opts?.host or "localhost"
+		port = opts?.port or 1337
+		trans = opts?.transport or "text"
 
-		client = net.connect opts, =>
-			bridge = new @BridgeClass()
-			bridge.opts = opts			
-			bridge.init client, =>
-				console.log 'connected'
-				@bridges.push bridge			
+		transportClass = @opts.transport[trans]
+		throw "unsupported transport" unless transportClass
 
-				bridge.on 'close', =>
-					@bridges = _.without @bridges, bridge
-					@emit 'disconnect', bridge
-					reconnect()
+		client = net.connect {host:host,port:port}, =>
+			transport = new transportClass(client)
+			transport.send 'helo', (result) =>
+				bridgeClass = @opts.bridge[result]
+				unless bridgeClass
+					transport.send 'unsupported bridge type'
+					client.close()
+					throw "Unsupported"
 
-				@emit 'connect', bridge
+				bridge = new bridgeClass()
+				bridge.opts = {host:host,port:port,transport:trans}
+				bridge.init transport, =>
+					console.log 'connected'
+					@bridges.push bridge			
 
-		client.on 'error', (err) =>
+					bridge.on 'close', =>
+						@bridges = _.without @bridges, bridge
+						@emit 'disconnect', bridge
+
+					@emit 'connect', bridge
+
+		client.on 'error', (err) =>			
 			reconnect()
 		
 
