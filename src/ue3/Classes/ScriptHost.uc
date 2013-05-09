@@ -106,6 +106,12 @@ event ReceivedLine( string Text )
 	trid = int(Mid(Text,0,delim));
 	Text = Mid(Text,delim+1);
 
+	if (Text == "helo")
+	{
+		SendText( trid @ "UnrealEngine3" );
+		return;
+	}	
+
 	delim = InStr(Text," ");
 	obj = GetObject(Mid(Text,0,delim));
 	Text = Mid(Text,delim+1);
@@ -113,7 +119,7 @@ event ReceivedLine( string Text )
 	{		
 		delim = InStr(Text," ");
 		action = Mid(Text,0,delim);
-		Text = Mid(Text,delim+1);
+		Text = Mid(Text,delim+1);		
 
 		if (action == "exec")
 		{			
